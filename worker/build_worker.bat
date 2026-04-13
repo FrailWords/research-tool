@@ -1,7 +1,4 @@
 @echo off
-REM Compiles worker.py into a standalone binary using PyInstaller.
-REM Run this before `npm run tauri:build`.
-
 cd /d "%~dp0"
 
 echo Installing Python dependencies...
@@ -12,8 +9,8 @@ pyinstaller worker.py ^
   --onefile ^
   --name worker ^
   --distpath ..\src-tauri\binaries ^
-  --workpath %TEMP%\pyinstaller-work ^
-  --specpath %TEMP%\pyinstaller-spec ^
+  --workpath %CD%\pyinstaller-work ^
+  --specpath %CD%\pyinstaller-spec ^
   --clean ^
   --noconfirm
 
