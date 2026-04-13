@@ -1,0 +1,4 @@
+pdfminer.six>=20221105
+markdown2>=2.4.10
+weasyprint>=60.0
+pyinstaller>=6.0
