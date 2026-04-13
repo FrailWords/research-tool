@@ -37,32 +37,72 @@ jobs:
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      - name: Install Python dependencies & build worker (macOS)
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Generate icons (macOS)
         if: matrix.platform == 'macos-latest'
         run: |
-          pip install -r worker/requirements.txt
+          cd src-tauri/icons
+          python3 -c "
+          import struct, zlib
+          def png(w,h,color):
+              def chunk(t,d):
+                  c=zlib.crc32(t+d)&0xffffffff
+                  return struct.pack('>I',len(d))+t+d+struct.pack('>I',c)
+              raw=b''.join(b'\x00'+bytes(color)*w for _ in range(h))
+              return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
+          open('32x32.png','wb').write(png(32,32,[100,120,200]))
+          open('128x128.png','wb').write(png(128,128,[100,120,200]))
+          open('128x128@2x.png','wb').write(png(256,256,[100,120,200]))
+          open('icon.icns','wb').write(b'')
+          "
+
+      - name: Generate icons (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: python
+        run: |
+          import struct, zlib, os
+          os.chdir('src-tauri/icons')
+          def png(w,h,color):
+              def chunk(t,d):
+                  c=zlib.crc32(t+d)&0xffffffff
+                  return struct.pack('>I',len(d))+t+d+struct.pack('>I',c)
+              raw=b''.join(b'\x00'+bytes(color)*w for _ in range(h))
+              return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
+          open('32x32.png','wb').write(png(32,32,[100,120,200]))
+          open('128x128.png','wb').write(png(128,128,[100,120,200]))
+          open('128x128@2x.png','wb').write(png(256,256,[100,120,200]))
+          # Generate minimal valid ICO file (1x1 pixel)
+          ico_header = struct.pack('<HHH', 0, 1, 1)
+          ico_entry = struct.pack('<BBBBHHII', 1, 1, 0, 0, 1, 32, 40, 22)
+          bmp = struct.pack('<IiiHHIIiiII', 40, 1, -1, 1, 32, 0, 4, 0, 0, 0, 0)
+          bmp += b'\x64\x78\xc8\xff'  # one blue pixel BGRA
+          bmp += b'\x00'              # mask
+          open('icon.ico','wb').write(ico_header + ico_entry + bmp)
+          open('icon.icns','wb').write(b'')
+
+      - name: Build worker (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          pip install -r worker/requirements.txt --quiet
           cd worker
-          # Build for x86_64
           pyinstaller worker.py --onefile --name worker \
             --distpath ../src-tauri/binaries \
             --workpath /tmp/pyinstaller-work \
             --specpath /tmp/pyinstaller-spec \
             --clean --noconfirm
           mv ../src-tauri/binaries/worker ../src-tauri/binaries/worker-x86_64-apple-darwin
-          # Copy same binary for aarch64 (CI runner is x86, universal build handles the rest)
           cp ../src-tauri/binaries/worker-x86_64-apple-darwin ../src-tauri/binaries/worker-aarch64-apple-darwin
 
-      - name: Install Python dependencies & build worker (Windows)
+      - name: Build worker (Windows)
         if: matrix.platform == 'windows-latest'
+        shell: cmd
         run: |
-          pip install -r worker/requirements.txt
+          pip install -r worker/requirements.txt --quiet
           cd worker
           pyinstaller worker.py --onefile --name worker --distpath ..\src-tauri\binaries --workpath %CD%\pyinstaller-work --specpath %CD%\pyinstaller-spec --clean --noconfirm
           rename ..\src-tauri\binaries\worker.exe worker-x86_64-pc-windows-msvc.exe
-        shell: cmd      
-
-      - name: Install npm dependencies
-        run: npm install
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
