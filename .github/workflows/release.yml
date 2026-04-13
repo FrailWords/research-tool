@@ -13,7 +13,7 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            args: "--target universal-apple-darwin"
+            args: "--target x86_64-apple-darwin"
           - platform: windows-latest
             args: ""
 
@@ -35,7 +35,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'x86_64-apple-darwin' || '' }}
 
       - name: Install npm dependencies
         run: npm install
@@ -73,13 +73,11 @@ jobs:
           open('32x32.png','wb').write(png(32,32,[100,120,200]))
           open('128x128.png','wb').write(png(128,128,[100,120,200]))
           open('128x128@2x.png','wb').write(png(256,256,[100,120,200]))
-          # Generate minimal valid ICO file (1x1 pixel)
+          # Valid 32x32 ICO using PNG format inside ICO container
+          png_data = png(32,32,[100,120,200])
           ico_header = struct.pack('<HHH', 0, 1, 1)
-          ico_entry = struct.pack('<BBBBHHII', 1, 1, 0, 0, 1, 32, 40, 22)
-          bmp = struct.pack('<IiiHHIIiiII', 40, 1, -1, 1, 32, 0, 4, 0, 0, 0, 0)
-          bmp += b'\x64\x78\xc8\xff'  # one blue pixel BGRA
-          bmp += b'\x00'              # mask
-          open('icon.ico','wb').write(ico_header + ico_entry + bmp)
+          ico_entry = struct.pack('<BBBBHHII', 32, 32, 0, 0, 1, 32, len(png_data), 22)
+          open('icon.ico','wb').write(ico_header + ico_entry + png_data)
           open('icon.icns','wb').write(b'')
 
       - name: Build worker (macOS)
