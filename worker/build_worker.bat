@@ -14,7 +14,6 @@ pyinstaller worker.py ^
   --clean ^
   --noconfirm
 
+rename ..\src-tauri\binaries\worker.exe worker-x86_64-pc-windows-msvc.exe
 echo.
-echo Worker binary built: ..\src-tauri\binaries\worker.exe
-echo.
-echo Now run: npm run tauri:build
+echo Worker binary built: ..\src-tauri\binaries\worker-x86_64-pc-windows-msvc.exe

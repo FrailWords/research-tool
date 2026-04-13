@@ -1,8 +1,4 @@
 #!/bin/bash
-# Compiles worker.py into a standalone binary using PyInstaller.
-# Run this before `npm run tauri:build`.
-# Output goes to ../src-tauri/binaries/worker (or worker.exe on Windows).
-
 set -e
 cd "$(dirname "$0")"
 
@@ -19,6 +15,12 @@ pyinstaller worker.py \
   --clean \
   --noconfirm
 
-echo "✓ Worker binary built: ../src-tauri/binaries/worker"
-echo ""
-echo "Now run: npm run tauri:build"
+# Rename to match Tauri's expected sidecar filename
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+  TARGET="aarch64-apple-darwin"
+else
+  TARGET="x86_64-apple-darwin"
+fi
+mv ../src-tauri/binaries/worker ../src-tauri/binaries/worker-${TARGET}
+echo "✓ Worker binary: ../src-tauri/binaries/worker-${TARGET}"

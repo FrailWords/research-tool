@@ -41,14 +41,25 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: |
           pip install -r worker/requirements.txt
-          cd worker && bash build_worker.sh
+          cd worker
+          # Build for x86_64
+          pyinstaller worker.py --onefile --name worker \
+            --distpath ../src-tauri/binaries \
+            --workpath /tmp/pyinstaller-work \
+            --specpath /tmp/pyinstaller-spec \
+            --clean --noconfirm
+          mv ../src-tauri/binaries/worker ../src-tauri/binaries/worker-x86_64-apple-darwin
+          # Copy same binary for aarch64 (CI runner is x86, universal build handles the rest)
+          cp ../src-tauri/binaries/worker-x86_64-apple-darwin ../src-tauri/binaries/worker-aarch64-apple-darwin
 
       - name: Install Python dependencies & build worker (Windows)
         if: matrix.platform == 'windows-latest'
         run: |
           pip install -r worker/requirements.txt
-          cd worker && build_worker.bat
-        shell: cmd
+          cd worker
+          pyinstaller worker.py --onefile --name worker --distpath ..\src-tauri\binaries --workpath %CD%\pyinstaller-work --specpath %CD%\pyinstaller-spec --clean --noconfirm
+          rename ..\src-tauri\binaries\worker.exe worker-x86_64-pc-windows-msvc.exe
+        shell: cmd      
 
       - name: Install npm dependencies
         run: npm install
